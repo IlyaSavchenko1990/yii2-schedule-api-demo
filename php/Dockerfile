@@ -5,9 +5,13 @@ ARG PHP_BASE_IMAGE_VERSION
 FROM php:${PHP_BASE_IMAGE_VERSION} as min
 
 # Install required system packages for PHP extensions for Yii 2.0 Framework
-COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions \
-        intl
+# COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+# RUN install-php-extensions \
+#         intl
+# RUN apt-get -y update \
+# && apt-get install -y libicu-dev \ 
+# && docker-php-ext-configure intl \
+# && docker-php-ext-install intl
 
 # Environment settings
 ENV PATH=/app:/app/vendor/bin:/root/.composer/vendor/bin:$PATH \
@@ -46,14 +50,14 @@ RUN apt-get update && \
         rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install common system packages for PHP extensions recommended for Yii 2.0 Framework
-COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
-RUN install-php-extensions \
-        pcntl \
-        zip \
-        bcmath \
-        exif \
-        gd \
-        pdo_mysql 
+# COPY --from=mlocati/php-extension-installer /usr/bin/install-php-extensions /usr/local/bin/
+RUN apt-get -y update \
+&& apt install -y zlib1g-dev libpng-dev \ 
+&& docker-php-ext-install pcntl \ 
+        bcmath \ 
+        exif \ 
+        gd \ 
+        pdo_mysql
 
 # Add configuration files
 COPY image-files/dev/ /

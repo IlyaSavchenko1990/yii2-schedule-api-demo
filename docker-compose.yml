@@ -31,7 +31,6 @@ services:
 
   php:
     build:
-      dockerfile: Dockerfile-${DOCKERFILE_FLAVOUR}
       context: 'php'
       target: dev
       args:
@@ -51,7 +50,6 @@ services:
       - DB_PASSWORD=${MYSQL_PASSWORD}
     volumes:
       - ./tests:/tests:delegated
-      - ./yii2:/yii2:delegated
       - ./app:/app:delegated
       - ~/.composer-docker/cache:/root/.composer/cache:delegated
     networks:

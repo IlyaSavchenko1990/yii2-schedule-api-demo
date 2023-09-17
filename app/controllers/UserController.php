@@ -3,13 +3,31 @@
 namespace app\controllers;
 
 use app\models\Users;
+use app\models\UsersFilter;
+use app\services\interfaces\IUsersMeetingsService;
+use app\services\interfaces\IUsersService;
+use DateTime;
 use Yii;
-use yii\data\ActiveDataProvider;
 use yii\rest\ActiveController;
+use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 
 class UserController extends ActiveController
 {
+    protected IUsersMeetingsService $usersMeetingsService;
+    protected IUsersService $usersService;
+
+    public function __construct(
+        $id,
+        $module,
+        IUsersMeetingsService $usersMeetingsService,
+        IUsersService $usersService,
+        $config = []
+    ) {
+        $this->usersMeetingsService = $usersMeetingsService;
+        $this->usersService = $usersService;
+        parent::__construct($id, $module, $config);
+    }
 
     public $modelClass = Users::class;
 
@@ -59,29 +77,70 @@ class UserController extends ActiveController
         return $user;
     }
 
+    public function actionAttach($id)
+    {
+        $form = Yii::$app->request->post();
+        if (!isset($form['meetings_ids'])) {
+            throw new BadRequestHttpException('Не заданы собрания');
+        }
+
+        $meetingsIds = explode(',', $form['meetings_ids']);
+
+        return $this->usersMeetingsService->attachUserToMeetings($id, $meetingsIds);
+    }
+
+    public function actionDetach($id)
+    {
+        $form = Yii::$app->request->post();
+        if (!isset($form['meetings_ids'])) {
+            throw new BadRequestHttpException('Не заданы собрания');
+        }
+
+        $meetingsIds = explode(',', $form['meetings_ids']);
+
+        return $this->usersMeetingsService->detachUserFromMeetings($id, $meetingsIds);
+    }
+
     public function actionIndex()
     {
-        $orderBy = Yii::$app->request->get('order_by');
-        if (empty($orderBy)) {
-            $orderBy = 'id DESC';
-        }
-        $query = Users::find()
-            ->orderBy($orderBy);
-
-        $name = Yii::$app->request->get('name');
-        if (!empty($name) && is_string($name)) {
-            explode($name, ',');
-            $query->where(['name' => $name]);
+        $filter = new UsersFilter();
+        $filter->load(Yii::$app->request->getQueryParams(), '');
+        if (!$filter->validate()) {
+            Yii::$app->response->statusCode = 400;
+            return ['errors' => $filter->errors];
         }
 
-        $limit = intval(Yii::$app->request->get('per-page'));
-        $provider = new ActiveDataProvider([
-            'query' => $query,
-            'pagination' => [
-                'pageSize' => $limit ?: 10
-            ]
-        ]);
+        return $this->usersService->findUsers($filter);
+    }
 
-        return $provider;
+    /**
+     * Возвращает оптимальное расписание собраний для заданного пользователя
+     * на заданную дату
+     */
+    public function actionSchedule($id)
+    {
+        $query = Yii::$app->request->queryParams;
+
+        $dateIn = null;
+        if (!isset($query['date_in'])) {
+            $now = new DateTime('now');
+            $now->setTime(8, 0);
+            $dateIn = $now->format('Y-m-d H:i');
+        } else {
+            $dateIn = $query['date_in'];
+        }
+
+        $dateEnd = null;
+        if (!isset($query['date_end'])) {
+            $now = new DateTime('now');
+            $now->setTime(18, 0);
+            $dateEnd = $now->format('Y-m-d H:i');
+        } else {
+            $dateEnd = $query['date_end'];
+        }
+
+        $list = $this->usersMeetingsService->getScheduleForUser($id, $dateIn, $dateEnd);
+
+        return $list;
     }
 }

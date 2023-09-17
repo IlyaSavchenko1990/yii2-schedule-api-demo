@@ -16,28 +16,15 @@ class m230910_112117_create_meetings_table extends Migration
         $this->createTable('{{%meetings}}', [
             'id' => $this->primaryKey(),
             'title' => $this->string(255),
+            'state' => $this->string(125)->notNull()->defaultValue('ACTIVE'),
             'date_in' => $this->dateTime()->notNull(),
-            'date_end' => $this->dateTime()->notNull(),
-            'weight' => $this->integer()->notNull()->defaultValue(0),
-            'length' => $this->integer()->notNull()->defaultValue(0)
+            'date_end' => $this->dateTime()->notNull()
         ]);
 
         $this->createIndex(
             'idx-date_in',
             '{{%meetings}}',
             'date_in'
-        );
-
-        $this->createIndex(
-            'idx-weight',
-            '{{%meetings}}',
-            'weight'
-        );
-
-        $this->createIndex(
-            'idx-length',
-            '{{%meetings}}',
-            'length'
         );
 
         $this->createIndex(

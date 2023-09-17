@@ -1,7 +1,15 @@
 <?php
 
+use app\services\MeetingsService;
+use app\services\UsersMeetingsService;
+use app\services\UsersService;
+
 $params = require __DIR__ . '/params.php';
 $db = require __DIR__ . '/db.php';
+
+Yii::$container->set('app\services\interfaces\IUsersMeetingsService', UsersMeetingsService::class);
+Yii::$container->set('app\services\interfaces\IUsersService', UsersService::class);
+Yii::$container->set('app\services\interfaces\IMeetingsService', MeetingsService::class);
 
 $config = [
     'id' => 'basic',
@@ -52,11 +60,20 @@ $config = [
             'rules' => [
                 [
                     'class' => 'yii\rest\UrlRule',
-                    'controller' => 'user'
+                    'controller' => 'user',
+                    'extraPatterns' => [
+                        'GET <id:\d+>/schedule' => 'schedule',
+                        'POST <id:\d+>/attach' => 'attach',
+                        'PUT <id:\d+>/detach' => 'detach',
+                    ]
                 ],
                 [
                     'class' => 'yii\rest\UrlRule',
-                    'controller' => 'meeting'
+                    'controller' => 'meeting',
+                    'extraPatterns' => [
+                        'POST <id:\d+>/attach' => 'attach',
+                        'PUT <id:\d+>/detach' => 'detach',
+                    ]
                 ]
             ],
         ],

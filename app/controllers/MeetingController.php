@@ -3,13 +3,31 @@
 namespace app\controllers;
 
 use app\models\Meetings;
+use app\models\MeetingsFilter;
+use app\services\interfaces\IMeetingsService;
+use app\services\interfaces\IUsersMeetingsService;
 use Yii;
-use yii\data\ActiveDataProvider;
 use yii\rest\ActiveController;
+use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 
 class MeetingController extends ActiveController
 {
+
+    protected IUsersMeetingsService $usersMeetingsService;
+    protected IMeetingsService $meetingsService;
+
+    public function __construct(
+        $id,
+        $module,
+        IUsersMeetingsService $usersMeetingsService,
+        IMeetingsService $meetingsService,
+        $config = []
+    ) {
+        $this->usersMeetingsService = $usersMeetingsService;
+        $this->meetingsService = $meetingsService;
+        parent::__construct($id, $module, $config);
+    }
 
     public $modelClass = Meetings::class;
 
@@ -32,14 +50,14 @@ class MeetingController extends ActiveController
     public function actionCreate()
     {
         $form = Yii::$app->request->post();
-        $user = new Meetings();
-        $user->load($form, '');
-        if (!$user->save()) {
+        $meeting = new Meetings();
+        $meeting->load($form, '');
+        if (!$meeting->save()) {
             Yii::$app->response->statusCode = 400;
-            return ['errors' => $user->errors];
+            return ['errors' => $meeting->errors];
         }
 
-        return $user;
+        return $meeting;
     }
 
     public function actionUpdate($id)
@@ -59,31 +77,39 @@ class MeetingController extends ActiveController
         return $meeting;
     }
 
+    public function actionAttach($id)
+    {
+        $form = Yii::$app->request->post();
+        if (!isset($form['users_ids'])) {
+            throw new BadRequestHttpException('Не заданы пользователи');
+        }
+
+        $usersIds = explode(',', $form['users_ids']);
+
+        return $this->usersMeetingsService->attachUsersToMeeting($id, $usersIds);
+    }
+
+    public function actionDetach($id)
+    {
+        $form = Yii::$app->request->post();
+        if (!isset($form['users_ids'])) {
+            throw new BadRequestHttpException('Не заданы пользователи');
+        }
+
+        $usersIds = explode(',', $form['users_ids']);
+
+        return $this->usersMeetingsService->detachUsersFromMeeting($id, $usersIds);
+    }
+
     public function actionIndex()
     {
-        $list = Meetings::getOptimal('2023-09-01 00:00', '2023-09-15 23:59');
-        return $list;
-        $orderBy = Yii::$app->request->get('order_by');
-        if (empty($orderBy)) {
-            $orderBy = 'id DESC';
-        }
-        $query = Meetings::find()
-            ->orderBy($orderBy);
-
-        $name = Yii::$app->request->get('name');
-        if (!empty($name) && is_string($name)) {
-            explode($name, ',');
-            $query->where(['name' => $name]);
+        $filter = new MeetingsFilter();
+        $filter->load(Yii::$app->request->getQueryParams(), '');
+        if (!$filter->validate()) {
+            Yii::$app->response->statusCode = 400;
+            return ['errors' => $filter->errors];
         }
 
-        $limit = intval(Yii::$app->request->get('per-page'));
-        $provider = new ActiveDataProvider([
-            'query' => $query,
-            'pagination' => [
-                'pageSize' => $limit ?: 10
-            ]
-        ]);
-
-        return $provider;
+        return $this->meetingsService->findMeetings($filter);
     }
 }
