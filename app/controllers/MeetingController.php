@@ -42,6 +42,7 @@ class MeetingController extends ActiveController
 
         unset($actions['create']);
         unset($actions['update']);
+        unset($actions['delete']);
         unset($actions['index']);
 
         return $actions;
@@ -75,6 +76,16 @@ class MeetingController extends ActiveController
         }
 
         return $meeting;
+    }
+
+    public function actionDelete($id)
+    {
+        $meeting = Meetings::findOne($id);
+        if (empty($meeting)) {
+            throw new NotFoundHttpException('Данные о собрании не найдены');
+        }
+
+        return Meetings::deleteAll(['id' => $id]);
     }
 
     public function actionAttach($id)

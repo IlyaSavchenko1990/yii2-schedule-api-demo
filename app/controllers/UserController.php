@@ -42,6 +42,7 @@ class UserController extends ActiveController
 
         unset($actions['create']);
         unset($actions['update']);
+        unset($actions['delete']);
         unset($actions['index']);
 
         return $actions;
@@ -75,6 +76,16 @@ class UserController extends ActiveController
         }
 
         return $user;
+    }
+
+    public function actionDelete($id)
+    {
+        $user = Users::findOne($id);
+        if (empty($user)) {
+            throw new NotFoundHttpException('Данные пользователя не найдены');
+        }
+
+        return Users::deleteAll(['id' => $id]);
     }
 
     public function actionAttach($id)
@@ -119,6 +130,11 @@ class UserController extends ActiveController
      */
     public function actionSchedule($id)
     {
+        $user = Users::findOne($id);
+        if (empty($user)) {
+            throw new NotFoundHttpException('Пользователь не найден');
+        }
+
         $query = Yii::$app->request->queryParams;
 
         $dateIn = null;
